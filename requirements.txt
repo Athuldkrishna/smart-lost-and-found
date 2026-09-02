@@ -4,3 +4,4 @@ transformers
 Pillow
 numpy
 pandas
+torchvision

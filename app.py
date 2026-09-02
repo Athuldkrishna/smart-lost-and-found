@@ -677,6 +677,9 @@ Possible matches between lost and found reports.
                 ):
                     score += 20
 
+                # Keep the combined match confidence in percentage bounds.
+                score = max(0, min(100, score))
+
                 # Only show reasonably good matches
                 if score >= 50:
                     matches.append(
