@@ -544,10 +544,20 @@ elif st.session_state.page == "Reports":
         placeholder="Describe the item, colour, brand, unique marks, etc."
     )
 
-    image = st.file_uploader(
-        "Upload item photo",
-        type=["png", "jpg", "jpeg"]
+    image_source = st.radio(
+        "Add item photo (optional)",
+        ["Upload from device", "Take a photo"],
+        horizontal=True
     )
+
+    if image_source == "Upload from device":
+        image = st.file_uploader(
+            "Upload item photo",
+            type=["png", "jpg", "jpeg"]
+        )
+    else:
+        image = st.camera_input("Take item photo")
+
     if st.button("Submit Report →", key="submit_report", use_container_width=True):
         if not item_name or not description:
             st.warning("Please provide at least the item name and description.")
@@ -565,6 +575,8 @@ elif st.session_state.page == "Reports":
 
             if image is not None:
                 file_extension = os.path.splitext(image.name)[1]
+                if not file_extension:
+                    file_extension = ".jpg" if image.type == "image/jpeg" else ".png"
                 unique_filename = f"{uuid.uuid4().hex}{file_extension}"
                 image_path = os.path.join("uploads", unique_filename)
 
