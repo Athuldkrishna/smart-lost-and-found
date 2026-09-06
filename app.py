@@ -380,6 +380,18 @@ div[data-testid="stHorizontalBlock"] .nav-btn button:hover {
     .card-shell {
         padding: 28px;
     }
+
+    /* Keep Streamlit button labels readable on mobile browsers. */
+    div[data-testid="stButton"] > button {
+        background: #174B3A !important;
+        border-color: #174B3A !important;
+        color: #FFFFFF !important;
+    }
+
+    div[data-testid="stButton"] > button p,
+    div[data-testid="stButton"] > button span {
+        color: #FFFFFF !important;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
