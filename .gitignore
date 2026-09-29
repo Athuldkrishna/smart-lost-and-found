@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 lost_found.db
 uploads/
+
+# Supabase keys — never commit
+.streamlit/secrets.toml
+.env
