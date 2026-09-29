@@ -34,13 +34,21 @@ An AI-powered Lost & Found system designed for campus communities.
 
 - Streamlit
 
-- SQLite
+- Supabase (PostgreSQL + Storage)
 
 - CLIP / Image Matching
 
 - HTML and CSS
 
 
+
+## Supabase Setup
+
+1\. Create a project at https://supabase.com.
+
+2\. Open **SQL Editor**, paste the contents of `supabase_schema.sql`, and click **Run**. This creates the `users` and `reports` tables and the `item-images` storage bucket.
+
+3\. Copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` and fill in `SUPABASE_URL` and `SUPABASE_KEY` (Project Settings → API; use the secret / service_role key).
 
 ## How to Run
 
@@ -64,7 +72,9 @@ An AI-powered Lost & Found system designed for campus communities.
 
 - app.py - Main Streamlit application
 
-- database.py - Database operations
+- database.py - Supabase database and storage operations
+
+- supabase_schema.sql - Tables and storage bucket setup (run once in Supabase)
 
 - image_matcher.py - Image matching functionality
 

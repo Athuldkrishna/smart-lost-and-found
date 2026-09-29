@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import uuid
 from datetime import datetime
 
 from clip_test import compare_images
@@ -10,7 +9,8 @@ from database import (
     add_report,
     get_reports,
     create_user,
-    verify_user
+    verify_user,
+    upload_image
 )
 # Initialize the database
 initialize_database()
@@ -579,36 +579,38 @@ elif st.session_state.page == "Reports":
                 "Lost" if report_type == "I Lost Something" else "Found"
             )
 
-            # Create uploads folder
-            os.makedirs("uploads", exist_ok=True)
+            try:
+                # Upload image to Supabase Storage
+                image_path = ""
 
-            # Save uploaded image
-            image_path = ""
+                if image is not None:
+                    file_extension = os.path.splitext(image.name)[1]
+                    if not file_extension:
+                        file_extension = ".jpg" if image.type == "image/jpeg" else ".png"
 
-            if image is not None:
-                file_extension = os.path.splitext(image.name)[1]
-                if not file_extension:
-                    file_extension = ".jpg" if image.type == "image/jpeg" else ".png"
-                unique_filename = f"{uuid.uuid4().hex}{file_extension}"
-                image_path = os.path.join("uploads", unique_filename)
+                    image_path = upload_image(
+                        image.getvalue(),
+                        file_extension,
+                        image.type
+                    )
 
-                with open(image_path, "wb") as file:
-                    file.write(image.getbuffer())
+                # Save report to Supabase
+                add_report(
+                    report_type=report_type_value,
+                    item_name=item_name,
+                    category="General",
+                    description=description,
+                    location=location,
+                    date_reported=datetime.now().isoformat(),
+                    image_path=image_path,
+                    contact="",
+                    reported_by=st.session_state.get("username")
+                )
 
-            # Save report to database
-            add_report(
-                report_type=report_type_value,
-                item_name=item_name,
-                category="General",
-                description=description,
-                location=location,
-                date_reported=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                image_path=image_path,
-                contact=""
-            )
+                st.success("✅ Report submitted successfully and saved to the database!")
 
-            # Show success message
-            st.success("✅ Report submitted successfully and saved to the database!")
+            except Exception as error:
+                st.error(f"Could not save the report: {error}")
 
 # ============================================================
 # MATCHES
@@ -646,12 +648,12 @@ Possible matches between lost and found reports.
         # Separate Lost and Found reports
         lost_reports = [
             report for report in reports
-            if report[1] == "Lost"
+            if report["report_type"] == "Lost"
         ]
 
         found_reports = [
             report for report in reports
-            if report[1] == "Found"
+            if report["report_type"] == "Found"
         ]
 
         matches = []
@@ -664,20 +666,20 @@ Possible matches between lost and found reports.
                 score = 0
 
                 # CLIP image similarity
-                if lost[7] and found[7]:
-                  image_score = compare_images(lost[7], found[7])
-                  score += image_score * 0.3
+                if lost["image_path"] and found["image_path"]:
+                    image_score = compare_images(lost["image_path"], found["image_path"])
+                    score += image_score * 0.3
 
                 # Item name similarity
-                lost_name = lost[2].lower()
-                found_name = found[2].lower()
+                lost_name = lost["item_name"].lower()
+                found_name = found["item_name"].lower()
 
                 if lost_name in found_name or found_name in lost_name:
                     score += 25
 
                 # Description similarity
-                lost_description = (lost[4] or "").lower()
-                found_description = (found[4] or "").lower()
+                lost_description = (lost["description"] or "").lower()
+                found_description = (found["description"] or "").lower()
 
                 lost_words = set(lost_description.split())
                 found_words = set(found_description.split())
@@ -688,8 +690,8 @@ Possible matches between lost and found reports.
                     score += min(len(common_words) * 10, 30)
 
                 # Location similarity
-                lost_location = (lost[5] or "").lower()
-                found_location = (found[5] or "").lower()
+                lost_location = (lost["location"] or "").lower()
+                found_location = (found["location"] or "").lower()
 
                 if (
                     lost_location
@@ -732,27 +734,27 @@ Possible matches between lost and found reports.
                 with col1:
                     st.markdown("### 🔴 Lost Item")
 
-                    if lost[7]:
-                      st.image(lost[7], caption="Lost item photo", use_container_width=True)
+                    if lost["image_path"]:
+                        st.image(lost["image_path"], caption="Lost item photo", use_container_width=True)
 
-                    st.write(f"**Item:** {lost[2]}")
-                    st.write(f"**Description:** {lost[4]}")
-                    st.write(f"**Location:** {lost[5]}")
+                    st.write(f"**Item:** {lost['item_name']}")
+                    st.write(f"**Description:** {lost['description']}")
+                    st.write(f"**Location:** {lost['location']}")
 
 
                 with col2:
                     st.markdown("### 🟢 Found Item")
 
-                    if found[7]:
-                      st.image(found[7], caption="Found item photo", use_container_width=True)
+                    if found["image_path"]:
+                        st.image(found["image_path"], caption="Found item photo", use_container_width=True)
 
-                    st.write(f"**Item:** {found[2]}")
-                    st.write(f"**Description:** {found[4]}")
-                    st.write(f"**Location:** {found[5]}")
+                    st.write(f"**Item:** {found['item_name']}")
+                    st.write(f"**Description:** {found['description']}")
+                    st.write(f"**Location:** {found['location']}")
 
                 st.progress(
                     min(score / 100, 1.0),
-                    text=f"Match confidence: {score}%"
+                    text=f"Match confidence: {round(score, 1)}%"
                 )
 
         else:
